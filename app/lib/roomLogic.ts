@@ -2,7 +2,12 @@ import { FloorPlan, Room, Direction, FloorAction } from "./types";
 import { MIN_SIZE } from "./initialFloor";
 
 export function cloneFloor(floor: FloorPlan): FloorPlan {
-  return { ...floor, rooms: floor.rooms.map((r) => ({ ...r })) };
+  return {
+    ...floor,
+    rooms: floor.rooms.map((r) => ({ ...r })),
+    doors: floor.doors ? [...floor.doors] : [],
+    windows: floor.windows ? [...floor.windows] : [],
+  };
 }
 
 // targetの指定方向の境界と接触している部屋を返す

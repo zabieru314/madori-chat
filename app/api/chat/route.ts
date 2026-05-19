@@ -15,13 +15,13 @@ const SYSTEM_PROMPT = `あなたはAI間取り図チャットアシスタント�
 - message はユーザーへの日本語メッセージ（1〜2文）
 
 【部屋ID一覧】
-- ldk: LDK（リビング・ダイニング・キッチン）
-- room1: 洋室（上）
-- room2: 洋室（左下）
-- room3: 洋室（中下）
-- bath: 浴室・洗面
-- toilet: トイレ
-- hall: 玄関・廊下
+- ldk: LDK（リビング・ダイニング・キッチン）右側の大きな部屋
+- room1: 洋室①（上段中央）
+- room2: 洋室②（下段左）
+- room3: 洋室③（下段中央）
+- bath: 浴室・洗面（左上）
+- toilet: トイレ（浴室の下）
+- hall: 廊下（左端縦通路・玄関含む）
 
 【判定ルール】
 - 「LDKを広くして」→ LDKをどの方向に広げるか判断（隣接関係を考慮）
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "deepseek-v4-flash",
+      model: "deepseek-v4-pro",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userContent },
