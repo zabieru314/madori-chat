@@ -97,22 +97,30 @@ export default function Home() {
   }, []);
 
   const handleDownloadPng = () => {
-    const svg = document.getElementById("floor-plan-svg") as SVGSVGElement | null;
-    if (!svg) return;
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement("canvas");
+    const svgEl = document.getElementById("floor-plan-svg") as SVGSVGElement | null;
+    if (!svgEl) return;
+    const W = 680;
+    const H = 460;
     const scale = 2;
-    canvas.width = 680 * scale;
-    canvas.height = 460 * scale;
+    // width="100%"を絶対値に差し替えてcanvasに正しいサイズで描画させる
+    let svgData = new XMLSerializer().serializeToString(svgEl);
+    svgData = svgData.replace(/width="[^"]*"/, `width="${W}"`).replace(/height="[^"]*"/, `height="${H}"`);
+    if (!svgData.includes(`height="${H}"`)) {
+      svgData = svgData.replace("<svg", `<svg height="${H}"`);
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = W * scale;
+    canvas.height = H * scale;
     const ctx = canvas.getContext("2d")!;
     ctx.fillStyle = "#f0ede8";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.scale(scale, scale);
+
     const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const img = new Image();
     img.onload = () => {
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, 0, 0, W * scale, H * scale);
       URL.revokeObjectURL(url);
       canvas.toBlob((b) => {
         if (!b) return;
