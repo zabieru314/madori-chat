@@ -8,10 +8,10 @@ const SYSTEM_PROMPT = `あなたはAI間取り図チャットアシスタント�
 
 【絶対ルール】
 - 返答は必ず以下のJSON形式のみ。説明文や余分なテキストは一切不要。
-- type は "expand"（広げる）、"shrink"（縮める）、"no_change"（変更なし）のいずれか
+- type は "expand"（広げる）、"shrink"（縮める）、"no_change"（変更なし）、"ask"（量を確認）のいずれか
 - direction は "left" | "right" | "up" | "down"（expandまたはshrinkの場合のみ）
 - target_room は rooms の id（ldk, room1, room2, room3, bath, toilet, hall）
-- delta は変化量（グリッド単位、1〜20の整数を推奨）
+- delta は変化量（グリッド単位の整数、1グリッド=10cm）
 - message はユーザーへの日本語メッセージ（1〜2文）
 
 【レイアウト概要（中廊下型）】
@@ -30,14 +30,17 @@ const SYSTEM_PROMPT = `あなたはAI間取り図チャットアシスタント�
 - hall: 廊下（水平・中央帯・玄関含む）
 
 【判定ルール】
-- 「LDKを広くして」→ LDKをどの方向に広げるか判断（隣接関係を考慮）
+- 量が指定されていない場合（「LDKを広くして」等）→ type:"ask" で具体的な量を聞き返す
+  例: "LDKをどのくらい広げますか？10グリッド(1m)・20グリッド(2m)・30グリッド(3m)から選ぶか数値を指定してください。"
+- 量が指定されている場合（「LDKを20広げて」等）→ 即座にexpand/shrinkで実行
+- 「もっと」=20、「少し」=5、「大きく」=15 のデフォルト値で実行してよい
 - 部屋名が日本語で来ても適切なIDに変換する
 - 実現不可能な要求（L字形など）はno_changeで返す
 
-【レスポンスJSON形式】
-{"type":"expand","target_room":"ldk","direction":"left","delta":10,"message":"LDKを左に広げます。隣の洋室が少し狭くなります。"}
-または
-{"type":"no_change","message":"ご要望の変形はMVP版では対応していません。四角形の変形のみ可能です。"}`;
+【レスポンスJSON形式例】
+{"type":"expand","target_room":"ldk","direction":"left","delta":10,"message":"LDKを左に10グリッド（1m）広げます。"}
+{"type":"ask","target_room":"ldk","message":"LDKをどのくらい広げますか？10（1m）・20（2m）・30（3m）から選ぶか、グリッド数を指定してください。"}
+{"type":"no_change","message":"その変形は四角形の制約上対応できません。"}`;
 
 export async function POST(req: NextRequest) {
   const { message, floor } = (await req.json()) as { message: string; floor: FloorPlan };
@@ -61,7 +64,7 @@ export async function POST(req: NextRequest) {
         { role: "user", content: userContent },
       ],
       temperature: 0.3,
-      max_tokens: 200,
+      max_tokens: 300,
       response_format: { type: "json_object" },
     }),
   });

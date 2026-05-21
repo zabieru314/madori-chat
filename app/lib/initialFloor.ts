@@ -54,7 +54,7 @@ export const INITIAL_FLOOR: FloorPlan = {
   ],
 };
 
-export const MIN_SIZE = 8;
+export const MIN_SIZE = 3;
 
 // 1グリッド = 0.1m（10cm）
 export const GRID_TO_M = 0.1;

@@ -41,7 +41,7 @@ export default function Home() {
 
         const floorAction = action as FloorAction;
 
-        if (floorAction.type === "no_change") {
+        if (floorAction.type === "no_change" || floorAction.type === "ask") {
           setHistory((h) => [
             ...h,
             { id: makeId(), role: "assistant", content: floorAction.message },

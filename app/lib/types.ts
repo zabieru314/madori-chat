@@ -35,7 +35,7 @@ export interface FloorPlan {
 export type Direction = "left" | "right" | "up" | "down";
 
 export interface FloorAction {
-  type: "expand" | "shrink" | "no_change";
+  type: "expand" | "shrink" | "no_change" | "ask";
   target_room: string;
   direction?: Direction;
   delta?: number;
