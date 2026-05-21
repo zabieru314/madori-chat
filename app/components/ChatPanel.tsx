@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { ChatEntry, FloorPlan } from "../lib/types";
 
 interface Props {
@@ -9,6 +9,49 @@ interface Props {
   onAction: (message: string) => Promise<void>;
   onRestoreSnapshot: (floor: FloorPlan) => void;
   isLoading: boolean;
+}
+
+function MessageBubble({ entry, onRestoreSnapshot }: { entry: import("../lib/types").ChatEntry; onRestoreSnapshot: (floor: FloorPlan) => void }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(entry.content).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [entry.content]);
+
+  const isUser = entry.role === "user";
+
+  return (
+    <div className={`flex ${isUser ? "justify-end" : "justify-start"} group`}>
+      <div className="relative max-w-[80%]">
+        <div
+          className={`rounded-2xl px-4 py-2.5 text-sm ${
+            isUser
+              ? "bg-blue-500 text-white rounded-br-sm"
+              : "bg-gray-100 text-gray-700 rounded-bl-sm"
+          }`}
+        >
+          <p className="leading-relaxed whitespace-pre-wrap">{entry.content}</p>
+          {!isUser && entry.snapshot && (
+            <button
+              onClick={() => onRestoreSnapshot(entry.snapshot!)}
+              className="mt-2 text-xs text-blue-500 hover:text-blue-700 underline"
+            >
+              この図面に戻す
+            </button>
+          )}
+        </div>
+        <button
+          onClick={handleCopy}
+          className={`absolute -bottom-5 ${isUser ? "right-0" : "left-0"} opacity-0 group-hover:opacity-100 transition-opacity text-xs text-gray-400 hover:text-gray-600`}
+        >
+          {copied ? "コピー済み" : "コピー"}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default function ChatPanel({ floor, history, onAction, onRestoreSnapshot, isLoading }: Props) {
@@ -43,25 +86,7 @@ export default function ChatPanel({ floor, history, onAction, onRestoreSnapshot,
           </div>
         )}
         {history.map((entry) => (
-          <div key={entry.id} className={`flex ${entry.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-                entry.role === "user"
-                  ? "bg-blue-500 text-white rounded-br-sm"
-                  : "bg-gray-100 text-gray-700 rounded-bl-sm"
-              }`}
-            >
-              <p className="leading-relaxed whitespace-pre-wrap">{entry.content}</p>
-              {entry.role === "assistant" && entry.snapshot && (
-                <button
-                  onClick={() => onRestoreSnapshot(entry.snapshot!)}
-                  className="mt-2 text-xs text-blue-500 hover:text-blue-700 underline"
-                >
-                  この図面に戻す
-                </button>
-              )}
-            </div>
-          </div>
+          <MessageBubble key={entry.id} entry={entry} onRestoreSnapshot={onRestoreSnapshot} />
         ))}
         {isLoading && (
           <div className="flex justify-start">

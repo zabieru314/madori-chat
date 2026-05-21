@@ -24,6 +24,7 @@ export default function FloorPlanView({ floor }: Props) {
 
   return (
     <svg
+      id="floor-plan-svg"
       width="100%"
       viewBox={`0 0 ${SVG_W} ${SVG_H}`}
       style={{ display: "block", background: "#f0ede8" }}

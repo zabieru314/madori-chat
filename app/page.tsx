@@ -96,6 +96,35 @@ export default function Home() {
     ]);
   }, []);
 
+  const handleDownloadPng = () => {
+    const svg = document.getElementById("floor-plan-svg") as SVGSVGElement | null;
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const scale = 2;
+    canvas.width = 680 * scale;
+    canvas.height = 460 * scale;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#f0ede8";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.scale(scale, scale);
+    const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      canvas.toBlob((b) => {
+        if (!b) return;
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(b);
+        a.download = `floor-plan-${new Date().toISOString().slice(0, 10)}.png`;
+        a.click();
+      }, "image/png");
+    };
+    img.src = url;
+  };
+
   const handleReset = () => {
     setFloor(cloneFloor(INITIAL_FLOOR));
     setHistory((h) => [
@@ -124,11 +153,19 @@ export default function Home() {
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold text-gray-700 text-sm">間取り図</h2>
+              <div className="flex items-center gap-3">
+              <button
+                onClick={handleDownloadPng}
+                className="text-xs text-gray-500 hover:text-gray-800 border border-gray-200 rounded px-2 py-1 hover:bg-gray-50 transition-colors"
+              >
+                PNG保存
+              </button>
               <span className="text-xs text-gray-400">
                 全体: {(floor.total_width * GRID_TO_M).toFixed(1)} × {(floor.total_height * GRID_TO_M).toFixed(1)}m
                 &nbsp;（延床 {(floor.total_width * floor.total_height * GRID_TO_M * GRID_TO_M).toFixed(1)}㎡ /{" "}
                 {(floor.total_width * floor.total_height * GRID_TO_M * GRID_TO_M / 3.305785).toFixed(1)}坪）
               </span>
+              </div>
             </div>
             <FloorPlanView floor={floor} />
           </div>
