@@ -34,6 +34,39 @@ function MessageBubble({ entry, onRestoreSnapshot }: { entry: ChatEntry; onResto
   );
 }
 
+function ThinkingIndicator() {
+  const [progress, setProgress] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const start = Date.now();
+    const timer = setInterval(() => {
+      const sec = (Date.now() - start) / 1000;
+      setElapsed(sec);
+      // 3秒で75%まで急速に上がり、以降はゆっくり90%に近づく
+      setProgress(Math.min(90, sec < 3 ? (sec / 3) * 75 : 75 + (sec - 3) * 2.5));
+    }, 100);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="flex justify-start">
+      <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-4 py-3 text-sm text-gray-500 w-52">
+        <div className="flex items-center justify-between mb-2 text-xs">
+          <span>AIが考え中...</span>
+          <span className="tabular-nums">{elapsed.toFixed(1)}秒</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-1.5">
+          <div
+            className="bg-blue-400 h-1.5 rounded-full transition-all duration-100"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ChatPanel({ floor, history, onAction, onRestoreSnapshot, isLoading }: Props) {
   const [input, setInput] = useState("");
   const [copied, setCopied] = useState(false);
@@ -89,17 +122,7 @@ export default function ChatPanel({ floor, history, onAction, onRestoreSnapshot,
         {history.map((entry) => (
           <MessageBubble key={entry.id} entry={entry} onRestoreSnapshot={onRestoreSnapshot} />
         ))}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-4 py-2.5">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-              </div>
-            </div>
-          </div>
-        )}
+        {isLoading && <ThinkingIndicator />}
         <div ref={bottomRef} />
       </div>
 
