@@ -64,6 +64,9 @@ export default function FloorPlanView({ floor }: Props) {
       {/* 玄関・土間 */}
       <EntranceArea floor={floor} px={px} py={py} sx={sx} sy={sy} />
 
+      {/* キッチン */}
+      <KitchenCounter floor={floor} px={px} py={py} sx={sx} sy={sy} />
+
       {/* 部屋ラベル（最前面） */}
       {floor.rooms.map((r) => <RoomLabel key={`lbl-${r.id}`} room={r} px={px} py={py} sx={sx} sy={sy} />)}
 
@@ -187,6 +190,64 @@ function DoorMark({ door, room, px, py, sx, sy }: {
       </g>
     );
   }
+}
+
+/* ─── キッチンカウンター ─── */
+function KitchenCounter({ floor, px, py, sx, sy }: {
+  floor: FloorPlan;
+  px: (n: number) => number; py: (n: number) => number;
+  sx: number; sy: number;
+}) {
+  const ldk = floor.rooms.find((r) => r.id === "ldk");
+  if (!ldk) return null;
+
+  const lW = ldk.width * sx;
+  const lH = ldk.height * sy;
+  const lX = px(ldk.x);
+  const lY = py(ldk.y);
+
+  // LDK左壁に沿ったI型カウンター（廊下側の壁に接する）
+  const depth = lW * 0.22;        // 奥行き（左→右方向）
+  const len   = lH * 0.54;        // 長さ（縦方向）
+  const kX = lX + 1;              // 左壁に密着
+  const kY = lY + (lH - len) / 2; // LDK縦中央に配置
+
+  // シンク（カウンター上部1/3）
+  const sW = depth * 0.62;
+  const sH = len * 0.16;
+  const sX = kX + depth * 0.19;
+  const sY = kY + len * 0.08;
+
+  // コンロ（2口、カウンター下部）
+  const r1 = Math.min(depth, len) * 0.085;
+  const cx1 = kX + depth * 0.33;
+  const cx2 = kX + depth * 0.67;
+  const cy1 = kY + len * 0.64;
+  const cy2 = kY + len * 0.80;
+
+  return (
+    <g style={{ transition: "all 0.5s ease" }}>
+      {/* カウンター本体 */}
+      <rect x={kX} y={kY} width={depth} height={len} fill="#c4bdb5" stroke="#9a9088" strokeWidth={1} rx={1} />
+      {/* 前面ライン（カウンター手前端） */}
+      <line x1={kX + depth} y1={kY + 1} x2={kX + depth} y2={kY + len - 1} stroke="#9a9088" strokeWidth={2} />
+      {/* 作業台区切り線（横） */}
+      <line x1={kX + 1} y1={kY + len * 0.44} x2={kX + depth - 1} y2={kY + len * 0.44} stroke="#aaa09a" strokeWidth={0.8} strokeDasharray="3,2" />
+
+      {/* シンク */}
+      <rect x={sX} y={sY} width={sW} height={sH} fill="#a8cfe0" stroke="#6fa8c0" strokeWidth={0.8} rx={2} />
+      {/* 排水口 */}
+      <circle cx={sX + sW / 2} cy={sY + sH / 2} r={sH * 0.22} fill="none" stroke="#6fa8c0" strokeWidth={0.7} />
+
+      {/* コンロ（2口） */}
+      {[{ cx: cx1, cy: cy1 }, { cx: cx2, cy: cy2 }].map(({ cx, cy }, i) => (
+        <g key={i}>
+          <circle cx={cx} cy={cy} r={r1} fill="#444" stroke="#333" strokeWidth={0.7} />
+          <circle cx={cx} cy={cy} r={r1 * 0.52} fill="none" stroke="#666" strokeWidth={0.6} />
+        </g>
+      ))}
+    </g>
+  );
 }
 
 /* ─── 玄関・土間 ─── */
