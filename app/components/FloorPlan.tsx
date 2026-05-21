@@ -11,9 +11,9 @@ const SVG_W = 680;
 const SVG_H = 460;
 const PAD = 28;
 
-// フォント上限
 const MAX_FONT = 12;
 const MIN_FONT = 8;
+const DOOMA_RATIO = 0.18; // 土間エリアの割合（hallの左18%）
 
 export default function FloorPlanView({ floor }: Props) {
   const sx = (SVG_W - PAD * 2) / floor.total_width;
@@ -35,6 +35,10 @@ export default function FloorPlanView({ floor }: Props) {
             <rect x={px(r.x) + 1} y={py(r.y) + 1} width={r.width * sx - 2} height={r.height * sy - 2} />
           </clipPath>
         ))}
+        <pattern id="tile-pattern" x="0" y="0" width="14" height="14" patternUnits="userSpaceOnUse">
+          <rect width="14" height="14" fill="#dde3ec" />
+          <rect width="14" height="14" fill="none" stroke="#c8d0dc" strokeWidth="0.7" />
+        </pattern>
       </defs>
 
       {/* 建物背景 */}
@@ -56,6 +60,9 @@ export default function FloorPlanView({ floor }: Props) {
         if (!room) return null;
         return <DoorMark key={i} door={d} room={room} px={px} py={py} sx={sx} sy={sy} />;
       })}
+
+      {/* 玄関・土間 */}
+      <EntranceArea floor={floor} px={px} py={py} sx={sx} sy={sy} />
 
       {/* 部屋ラベル（最前面） */}
       {floor.rooms.map((r) => <RoomLabel key={`lbl-${r.id}`} room={r} px={px} py={py} sx={sx} sy={sy} />)}
@@ -86,7 +93,11 @@ function RoomRect({ room, px, py, sx, sy }: { room: Room; px: (n: number) => num
 function RoomLabel({ room, px, py, sx, sy }: { room: Room; px: (n: number) => number; py: (n: number) => number; sx: number; sy: number }) {
   const rw = room.width * sx;
   const rh = room.height * sy;
-  const cx = px(room.x) + rw / 2;
+  // hallは土間エリアを除いた廊下部分の中央にラベルを表示
+  const doomaW = room.id === "hall" ? rw * DOOMA_RATIO : 0;
+  const cx = room.id === "hall"
+    ? px(room.x) + doomaW + (rw - doomaW) / 2
+    : px(room.x) + rw / 2;
   const cy = py(room.y) + rh / 2;
   const minSide = Math.min(rw, rh);
   const fs = Math.max(MIN_FONT, Math.min(MAX_FONT, minSide * 0.17));
@@ -176,6 +187,50 @@ function DoorMark({ door, room, px, py, sx, sy }: {
       </g>
     );
   }
+}
+
+/* ─── 玄関・土間 ─── */
+function EntranceArea({ floor, px, py, sx, sy }: {
+  floor: FloorPlan;
+  px: (n: number) => number; py: (n: number) => number;
+  sx: number; sy: number;
+}) {
+  const hall = floor.rooms.find((r) => r.id === "hall");
+  if (!hall) return null;
+
+  const hX = px(hall.x);
+  const hY = py(hall.y);
+  const hW = hall.width * sx;
+  const hH = hall.height * sy;
+
+  const dW = hW * DOOMA_RATIO;       // 土間幅
+  const kamachiX = hX + dW;          // 上がり框X
+
+  return (
+    <g style={{ transition: "all 0.5s ease" }}>
+      {/* 土間（タイルパターン） */}
+      <rect x={hX + 1} y={hY + 1} width={dW - 1} height={hH - 2} fill="url(#tile-pattern)" />
+
+      {/* 上がり框（二重線） */}
+      <line x1={kamachiX} y1={hY + 1} x2={kamachiX} y2={hY + hH - 1} stroke="#94a3b8" strokeWidth={3} />
+      <line x1={kamachiX + 3} y1={hY + 2} x2={kamachiX + 3} y2={hY + hH - 2} stroke="#64748b" strokeWidth={1} />
+
+      {/* 玄関テキスト */}
+      <text
+        x={hX + dW / 2}
+        y={hY + hH / 2}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize={Math.max(7, Math.min(9, hH * 0.22))}
+        fontFamily="'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif"
+        fontWeight="600"
+        fill="#475569"
+        style={{ userSelect: "none", pointerEvents: "none" } as React.CSSProperties}
+      >
+        玄関
+      </text>
+    </g>
+  );
 }
 
 /* ─── 窓 ─── */
