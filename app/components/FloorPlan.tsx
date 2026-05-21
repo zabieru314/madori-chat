@@ -1,6 +1,7 @@
 "use client";
 
 import { FloorPlan, Room, DoorSpec, WindowSpec } from "../lib/types";
+import { GRID_TO_M } from "../lib/initialFloor";
 
 interface Props {
   floor: FloorPlan;
@@ -94,20 +95,32 @@ function RoomLabel({ room, px, py, sx, sy }: { room: Room; px: (n: number) => nu
 
   if (minSide < 22) return null;
 
+  const mW = (room.width * GRID_TO_M).toFixed(1);
+  const mH = (room.height * GRID_TO_M).toFixed(1);
+  const sqM = (room.width * room.height * GRID_TO_M * GRID_TO_M).toFixed(1);
+  const tsubo = (room.width * room.height * GRID_TO_M * GRID_TO_M / 3.305785).toFixed(1);
+  const showDims = rh > 50 && rw > 35;
+
+  const lineH = fs * 1.4;
+  const baseY = showDims ? cy - lineH : cy;
+
+  const commonProps = {
+    textAnchor: "middle" as const,
+    fontFamily: "'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif",
+    fill: "#2a2a2a",
+    clipPath: `url(#cp-${room.id})`,
+    style: { userSelect: "none" as const, pointerEvents: "none" as const, transition: "x 0.5s ease, y 0.5s ease" },
+  };
+
   return (
-    <text
-      x={cx}
-      y={cy}
-      textAnchor="middle"
-      dominantBaseline="middle"
-      fontSize={fs}
-      fontFamily="'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif"
-      fontWeight="600"
-      fill="#2a2a2a"
-      clipPath={`url(#cp-${room.id})`}
-      style={{ userSelect: "none", pointerEvents: "none", transition: "x 0.5s ease, y 0.5s ease" }}
-    >
-      {room.name}
+    <text x={cx} y={baseY} {...commonProps}>
+      <tspan x={cx} dy="0" fontSize={fs} fontWeight="600">{room.name}</tspan>
+      {showDims && (
+        <>
+          <tspan x={cx} dy={lineH} fontSize={fs * 0.88} fontWeight="400">{mW}×{mH}m</tspan>
+          <tspan x={cx} dy={lineH * 0.95} fontSize={fs * 0.85} fontWeight="400">{sqM}㎡/{tsubo}坪</tspan>
+        </>
+      )}
     </text>
   );
 }

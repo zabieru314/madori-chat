@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { FloorPlan, ChatEntry, FloorAction } from "./lib/types";
-import { INITIAL_FLOOR } from "./lib/initialFloor";
+import { INITIAL_FLOOR, GRID_TO_M } from "./lib/initialFloor";
 import { applyAction, cloneFloor } from "./lib/roomLogic";
 import FloorPlanView from "./components/FloorPlan";
 import ChatPanel from "./components/ChatPanel";
@@ -125,7 +125,9 @@ export default function Home() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold text-gray-700 text-sm">間取り図</h2>
               <span className="text-xs text-gray-400">
-                全体: {floor.total_width} × {floor.total_height}
+                全体: {(floor.total_width * GRID_TO_M).toFixed(1)} × {(floor.total_height * GRID_TO_M).toFixed(1)}m
+                &nbsp;（延床 {(floor.total_width * floor.total_height * GRID_TO_M * GRID_TO_M).toFixed(1)}㎡ /{" "}
+                {(floor.total_width * floor.total_height * GRID_TO_M * GRID_TO_M / 3.305785).toFixed(1)}坪）
               </span>
             </div>
             <FloorPlanView floor={floor} />
@@ -141,7 +143,11 @@ export default function Home() {
                     style={{ backgroundColor: r.color, border: "1px solid #ccc" }}
                   />
                   <span className="font-medium">{r.name}</span>
-                  <span className="text-gray-400 ml-auto">{r.width.toFixed(1)}×{r.height.toFixed(1)}</span>
+                  <span className="text-gray-400 ml-auto">
+                    {(r.width * GRID_TO_M).toFixed(1)}×{(r.height * GRID_TO_M).toFixed(1)}m
+                    &nbsp;{(r.width * r.height * GRID_TO_M * GRID_TO_M).toFixed(1)}㎡
+                    /{(r.width * r.height * GRID_TO_M * GRID_TO_M / 3.305785).toFixed(1)}坪
+                  </span>
                 </div>
               ))}
             </div>
