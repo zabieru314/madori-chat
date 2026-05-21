@@ -56,9 +56,6 @@ export default function FloorPlanView({ floor }: Props) {
         return <DoorMark key={i} door={d} room={room} px={px} py={py} sx={sx} sy={sy} />;
       })}
 
-      {/* LDKのキッチンカウンター */}
-      <KitchenCounter floor={floor} px={px} py={py} sx={sx} sy={sy} />
-
       {/* 部屋ラベル（最前面） */}
       {floor.rooms.map((r) => <RoomLabel key={`lbl-${r.id}`} room={r} px={px} py={py} sx={sx} sy={sy} />)}
 
@@ -219,49 +216,3 @@ function WindowMark({ win, room, px, py, sx, sy }: {
   }
 }
 
-/* ─── キッチンカウンター（LDK内固定） ─── */
-function KitchenCounter({ floor, px, py, sx, sy }: {
-  floor: FloorPlan;
-  px: (n: number) => number; py: (n: number) => number;
-  sx: number; sy: number;
-}) {
-  const ldk = floor.rooms.find((r) => r.id === "ldk");
-  if (!ldk) return null;
-
-  // LDKの左下にL字カウンター
-  const cW = ldk.width * 0.45 * sx;  // カウンター横幅
-  const cH = ldk.height * 0.18 * sy; // カウンター奥行き
-  const cX = px(ldk.x);
-  const cY = py(ldk.y + ldk.height) - cH;
-
-  // シンクの位置（カウンター右側）
-  const sinkX = cX + cW * 0.6;
-  const sinkW = cW * 0.25;
-  const sinkH = cH * 0.55;
-  const sinkY = cY + cH * 0.2;
-
-  return (
-    <g style={{ transition: "all 0.5s ease" }}>
-      {/* カウンター本体 */}
-      <rect x={cX + 1} y={cY} width={cW} height={cH} fill="#f5ead0" stroke="#bba" strokeWidth={1} />
-      {/* 区切り線 */}
-      <line x1={cX + 1} y1={cY + cH * 0.5} x2={cX + cW} y2={cY + cH * 0.5} stroke="#ccc" strokeWidth={0.8} />
-      {/* シンク */}
-      <rect x={sinkX} y={sinkY} width={sinkW} height={sinkH} fill="none" stroke="#bba" strokeWidth={1} rx={2} />
-      <line x1={sinkX + sinkW / 2} y1={sinkY} x2={sinkX + sinkW / 2} y2={sinkY + sinkH} stroke="#ccc" strokeWidth={0.8} />
-      {/* ラベル */}
-      <text
-        x={cX + cW / 3}
-        y={cY + cH / 2}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fontSize={Math.min(9, cH * 0.4)}
-        fill="#888"
-        fontFamily="sans-serif"
-        style={{ userSelect: "none" }}
-      >
-        キッチン
-      </text>
-    </g>
-  );
-}
