@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "deepseek-v4-pro",
+      model: "deepseek-chat",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userContent },
@@ -77,8 +77,10 @@ export async function POST(req: NextRequest) {
   let action;
   try {
     action = JSON.parse(raw);
+    if (!action.type) throw new Error("type field missing");
   } catch {
-    action = { type: "no_change", message: "AIの返答を解析できませんでした。もう一度お試しください。" };
+    console.error("parse error, raw:", raw);
+    action = { type: "no_change", message: `AIの返答を解析できませんでした（raw: ${raw.slice(0, 80)}）` };
   }
 
   return NextResponse.json({ action });
