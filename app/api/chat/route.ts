@@ -22,12 +22,17 @@ const SYSTEM_PROMPT = `あなたはAI間取り図アシスタントです。
 【部屋ID】ldk / room1 / room2 / room3 / bath / toilet / hall
 
 【判定ルール】
-- 前のメッセージで部屋・方向が確定している場合、数値だけ来ても（「2m」「20」等）それをdeltaとして使う
-- 量が完全に不明な場合のみ type:"ask" で聞き返す（mで聞くこと）
+- 前のメッセージで部屋・方向が確定している場合、数値だけ来ても（「2m」「1m」等）前の意図（expand/shrink）を継続してそのdeltaで実行する
+- 「1mだけにして」「1mで」「1mにして」は、前の文脈が「広げる」なら expand、「縮める」なら shrink を維持する。絶対値への変更ではない
+- 量が完全に不明な場合のみ type:"ask" で聞き返す
 - 「もっと」=2m、「少し」=0.5m、「大きく」=1.5m のデフォルト値で即実行
 - 部屋名が日本語でも適切なIDに変換する
 
-【deltaの変換】1m = delta 10。2m = delta 20。0.5m = delta 5
+【文脈継続の例】
+  会話: 「LDKを広くして」→「1mだけにして」 → LDKを1m広げる（expandを継続）
+  会話: 「洋室を縮めて」→「2m」 → 洋室を2m縮める（shrinkを継続）
+
+【deltaの変換】1m = delta 10。2m = delta 20。0.5m = delta 5。3m = delta 30
 
 【レスポンス例】
 {"type":"expand","target_room":"ldk","direction":"left","delta":20,"message":"LDKを左に2m広げます。"}
