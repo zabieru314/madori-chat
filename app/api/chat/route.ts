@@ -1,55 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
-import { FloorPlan } from "@/app/lib/types";
+import { FloorPlan, ChatEntry } from "@/app/lib/types";
 
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
 
-const SYSTEM_PROMPT = `あなたはAI間取り図チャットアシスタントです。
-ユーザーのチャット指示と現在の間取りJSONを受け取り、どの部屋をどう変形するかを判定してJSONで返します。
+const SYSTEM_PROMPT = `あなたはAI間取り図アシスタントです。
+ユーザーと会話しながら間取りを変形します。直前の会話の文脈を必ず引き継いでください。
 
 【絶対ルール】
-- 返答は必ず以下のJSON形式のみ。説明文や余分なテキストは一切不要。
-- type は "expand"（広げる）、"shrink"（縮める）、"no_change"（変更なし）、"ask"（量を確認）のいずれか
-- direction は "left" | "right" | "up" | "down"（expandまたはshrinkの場合のみ）
-- target_room は rooms の id（ldk, room1, room2, room3, bath, toilet, hall）
-- delta は変化量（グリッド単位の整数、1グリッド=10cm）
-- message はユーザーへの日本語メッセージ（1〜2文）
+- 返答は必ずJSON形式のみ。説明文は一切不要。
+- type: "expand"（広げる）| "shrink"（縮める）| "no_change"（変更なし）| "ask"（確認）
+- direction: "left" | "right" | "up" | "down"（expand/shrinkのみ）
+- target_room: ldk | room1 | room2 | room3 | bath | toilet | hall
+- delta: 変化量（内部グリッド単位の整数。1m=10グリッド）
+- message: ユーザーへの日本語メッセージ。単位は必ず「m（メートル）」を使う。「グリッド」という言葉は絶対に使わない。
 
-【レイアウト概要（中廊下型）】
-廊下(hall)が建物中央を水平に貫通。上段に洋室①・浴室・トイレ、下段に洋室②③、右端にLDK。
+【レイアウト（中廊下型）】
   上段: [洋室①][浴室・洗面][トイレ][LDK]
   中段: [────────── 廊下 ──────────][LDK]
   下段: [洋室②  ][洋室③  ][LDK        ]
 
-【部屋ID一覧】
-- ldk: LDK（右端・全高・バルコニー側）
-- room1: 洋室①（左上・廊下の上）
-- room2: 洋室②（左下・廊下の下）
-- room3: 洋室③（中下・廊下の下）
-- bath: 浴室・洗面（上段中央・廊下の上）
-- toilet: トイレ（上段右・廊下の上）
-- hall: 廊下（水平・中央帯・玄関含む）
+【部屋ID】ldk / room1 / room2 / room3 / bath / toilet / hall
 
 【判定ルール】
-- 量が指定されていない場合（「LDKを広くして」等）→ type:"ask" で具体的な量を聞き返す
-  例: "LDKをどのくらい広げますか？10グリッド(1m)・20グリッド(2m)・30グリッド(3m)から選ぶか数値を指定してください。"
-- 量が指定されている場合（「LDKを20広げて」等）→ 即座にexpand/shrinkで実行
-- 「もっと」=20、「少し」=5、「大きく」=15 のデフォルト値で実行してよい
-- 部屋名が日本語で来ても適切なIDに変換する
-- 実現不可能な要求（L字形など）はno_changeで返す
+- 前のメッセージで部屋・方向が確定している場合、数値だけ来ても（「2m」「20」等）それをdeltaとして使う
+- 量が完全に不明な場合のみ type:"ask" で聞き返す（mで聞くこと）
+- 「もっと」=2m、「少し」=0.5m、「大きく」=1.5m のデフォルト値で即実行
+- 部屋名が日本語でも適切なIDに変換する
 
-【レスポンスJSON形式例】
-{"type":"expand","target_room":"ldk","direction":"left","delta":10,"message":"LDKを左に10グリッド（1m）広げます。"}
-{"type":"ask","target_room":"ldk","message":"LDKをどのくらい広げますか？10（1m）・20（2m）・30（3m）から選ぶか、グリッド数を指定してください。"}
-{"type":"no_change","message":"その変形は四角形の制約上対応できません。"}`;
+【deltaの変換】1m = delta 10。2m = delta 20。0.5m = delta 5
+
+【レスポンス例】
+{"type":"expand","target_room":"ldk","direction":"left","delta":20,"message":"LDKを左に2m広げます。"}
+{"type":"ask","target_room":"ldk","message":"LDKをどのくらい広げますか？1m・2m・3mから選ぶか教えてください。"}
+{"type":"no_change","message":"その変形は対応できません。"}`;
 
 export async function POST(req: NextRequest) {
-  const { message, floor } = (await req.json()) as { message: string; floor: FloorPlan };
+  const { message, floor, history } = (await req.json()) as {
+    message: string;
+    floor: FloorPlan;
+    history?: ChatEntry[];
+  };
 
   const floorSummary = floor.rooms
     .map((r) => `${r.id}(${r.name}): x=${r.x},y=${r.y},w=${r.width},h=${r.height}`)
     .join(" / ");
 
-  const userContent = `現在の間取り: ${floorSummary}\n\nユーザーの指示: ${message}`;
+  // 直近6件の会話履歴をDeepSeekに渡す
+  const recentHistory = (history ?? []).slice(-6);
+  const conversationMessages = recentHistory.map((h) => ({
+    role: h.role as "user" | "assistant",
+    content: h.content,
+  }));
+
+  const userContent = `現在の間取り: ${floorSummary}\n\n指示: ${message}`;
 
   const res = await fetch(DEEPSEEK_API_URL, {
     method: "POST",
@@ -61,6 +64,7 @@ export async function POST(req: NextRequest) {
       model: "deepseek-chat",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
+        ...conversationMessages,
         { role: "user", content: userContent },
       ],
       temperature: 0.3,
