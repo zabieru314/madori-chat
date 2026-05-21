@@ -206,44 +206,44 @@ function KitchenCounter({ floor, px, py, sx, sy }: {
   const lX = px(ldk.x);
   const lY = py(ldk.y);
 
-  // LDK左壁に沿ったI型カウンター（廊下側の壁に接する）
-  const depth = lW * 0.22;        // 奥行き（左→右方向）
-  const len   = lH * 0.54;        // 長さ（縦方向）
-  const kX = lX + 1;              // 左壁に密着
-  const kY = lY + (lH - len) / 2; // LDK縦中央に配置
+  // LDK上端に横置き（廊下接続点 y=25〜35 から遠い上側に配置して導線を確保）
+  const len   = lW * 0.72;       // 長さ（x方向）
+  const depth = lH * 0.11;       // 奥行き（y方向） ≈ LDK高さの1/9
+  const kX = lX + 1;             // 左壁密着
+  const kY = lY + 1;             // 上壁密着
 
-  // シンク（カウンター上部1/3）
-  const sW = depth * 0.62;
-  const sH = len * 0.16;
-  const sX = kX + depth * 0.19;
-  const sY = kY + len * 0.08;
+  // シンク（左寄り・小さめ）
+  const sW = len * 0.20;
+  const sH = depth * 0.55;
+  const sX = kX + len * 0.08;
+  const sY = kY + (depth - sH) / 2;
 
-  // コンロ（2口、カウンター下部）
-  const r1 = Math.min(depth, len) * 0.085;
-  const cx1 = kX + depth * 0.33;
-  const cx2 = kX + depth * 0.67;
-  const cy1 = kY + len * 0.64;
-  const cy2 = kY + len * 0.80;
+  // コンロ3口（三角配置・右寄り）
+  const br = Math.min(len, depth) * 0.075;
+  const bcx = kX + len * 0.68;
+  const bcy = kY + depth / 2;
+  const burners = [
+    { x: bcx - br * 1.5, y: bcy - br * 0.9 },
+    { x: bcx + br * 1.5, y: bcy - br * 0.9 },
+    { x: bcx,            y: bcy + br * 1.1  },
+  ];
 
   return (
     <g style={{ transition: "all 0.5s ease" }}>
       {/* カウンター本体 */}
-      <rect x={kX} y={kY} width={depth} height={len} fill="#c4bdb5" stroke="#9a9088" strokeWidth={1} rx={1} />
-      {/* 前面ライン（カウンター手前端） */}
-      <line x1={kX + depth} y1={kY + 1} x2={kX + depth} y2={kY + len - 1} stroke="#9a9088" strokeWidth={2} />
-      {/* 作業台区切り線（横） */}
-      <line x1={kX + 1} y1={kY + len * 0.44} x2={kX + depth - 1} y2={kY + len * 0.44} stroke="#aaa09a" strokeWidth={0.8} strokeDasharray="3,2" />
+      <rect x={kX} y={kY} width={len} height={depth} fill="#c4bdb5" stroke="#9a9088" strokeWidth={1} rx={1} />
+      {/* 前面ライン（カウンター下端） */}
+      <line x1={kX + 1} y1={kY + depth} x2={kX + len - 1} y2={kY + depth} stroke="#9a9088" strokeWidth={2} />
 
       {/* シンク */}
       <rect x={sX} y={sY} width={sW} height={sH} fill="#a8cfe0" stroke="#6fa8c0" strokeWidth={0.8} rx={2} />
-      {/* 排水口 */}
-      <circle cx={sX + sW / 2} cy={sY + sH / 2} r={sH * 0.22} fill="none" stroke="#6fa8c0" strokeWidth={0.7} />
+      <circle cx={sX + sW / 2} cy={sY + sH / 2} r={sH * 0.2} fill="none" stroke="#6fa8c0" strokeWidth={0.6} />
 
-      {/* コンロ（2口） */}
-      {[{ cx: cx1, cy: cy1 }, { cx: cx2, cy: cy2 }].map(({ cx, cy }, i) => (
+      {/* コンロ3口 */}
+      {burners.map((b, i) => (
         <g key={i}>
-          <circle cx={cx} cy={cy} r={r1} fill="#444" stroke="#333" strokeWidth={0.7} />
-          <circle cx={cx} cy={cy} r={r1 * 0.52} fill="none" stroke="#666" strokeWidth={0.6} />
+          <circle cx={b.x} cy={b.y} r={br} fill="#444" stroke="#333" strokeWidth={0.6} />
+          <circle cx={b.x} cy={b.y} r={br * 0.5} fill="none" stroke="#666" strokeWidth={0.5} />
         </g>
       ))}
     </g>
